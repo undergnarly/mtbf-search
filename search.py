@@ -3,12 +3,26 @@ from lxml import html
 from bs4 import BeautifulSoup
 import re
 from string import *
+from google import google
+import sys
+import codecs
 
+'''response = GoogleSearch().search("something")
+for result in response.results:
+    print("Title: " + result.title)
+    print("Content: " + result.getText())'''
+
+if sys.stdout.encoding != 'cp850':
+  sys.stdout = codecs.getwriter('cp850')(sys.stdout, 'strict')
+if sys.stderr.encoding != 'cp850':
+  sys.stderr = codecs.getwriter('cp850')(sys.stderr, 'strict')
+	
+	
 def print_msg(msg, spaces=False):
 	if spaces:
 	    print ''
 	    print msg
-	    print ''
+	    print '' 
 	else:
 	    print msg
 	
@@ -26,16 +40,41 @@ def load_db(f):
 		words = line.split()
 		db[words[0].lower()] = words[1]
 	db_f.close()
+	print_msg('Database loaded', True)
 	return db
-			
-		
+	
+def google_search(name, extra_tags=None):
+	def_tags = "MTBF MTTF"
+	num_page = 1
+	search_query = name + " " + def_tags
+	search_results = google.search(search_query, num_page)
+	first_res = search_results[0]
+	return search_results
+	
+def hasNumbers(inputString):
+    return any(char.isdigit() for char in inputString)
+
+def parse_mtbf(search_results):
+	none_results = True
+	for i in range(0,len(search_results)):
+		if "MTBF" in search_results[i].description and hasNumbers(search_results[i].description):
+				print_msg(search_results[i].description, True)
+				print_msg(search_results[i].link,)
+				print_msg('', True)
+				none_results = False
+	if not none_results:
+		print_msg('None results fot MTBF characteristic')
+	
+
+print_msg('',True)	
+print_msg('MTBF search (alpha 0.1)\n______________________________________________________________')
+logo = " |  \/  |__   __|  _ \|  ____|                         | | \n | \  / |  | |  | |_) | |__     ___  ___  __ _ _ __ ___| |__ \n | |\/| |  | |  |  _ <|  __|   / __|/ _ \/ _` | '__/ __| '_ \ \n | |  | |  | |  | |_) | |      \__ \  __/ (_| | | | (__| | | |\n |_|  |_|  |_|  |____/|_|      |___/\___|\__,_|_|  \___|_| |_|\n"
+print(logo)
 db = load_db('mtbf.db')	
-print db
-print_msg("db loaded", True)	
 print_msg("Input component name:", True)
 name = raw_input()
 url = "https://www.newegg.com/Product/ProductList.aspx?Submit=ENE&DEPA=0&Order=BESTMATCH&Description=" + name + "&ignorear=0&N=-1&isNodeId=1"
-print url
+print(url)
 r = requests.get(url)
 print_msg("search for component...", True)
 soup = BeautifulSoup(r.content, "html.parser")
@@ -59,11 +98,15 @@ print_msg('Tags:' )
 for i in range(1,len(comp_type)):
 	j = soup2.find('"',comp_type[i]+8)
 	comp_type[i] = soup2[comp_type[i]+7:j].lower()
-	print comp_type[i] 
+	print(comp_type[i])
 	
 result = {k: db[k] for k in db.viewkeys() & set(comp_type)}
+if result:
+	print_msg('MTBF of this components type (' ' equals ' + str(result.values()[0]) + ' hours', True)	
 
-print_msg(result.values(), True)	
+print_msg('Search MTBF data in Google ... ')
+search_result = google_search(name)
+parse_mtbf(search_result)
 
 
 
